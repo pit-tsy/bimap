@@ -12,17 +12,14 @@ public:
   using node_t = node<Key, Tag>;
 
 public:
-  intrusive_set(node_base& sentinel, Compare&& compare = Compare()) noexcept
-      : sentinel_(sentinel)
-      , compare_(std::move(compare)) {}
+  intrusive_set(Compare&& compare = Compare()) noexcept
+      : compare_(std::move(compare)) {}
 
-  intrusive_set(node_base& sentinel, const Compare& compare)
-      : sentinel_(sentinel)
-      , compare_(compare) {}
+  intrusive_set(const Compare& compare)
+      : compare_(compare) {}
 
-  intrusive_set(node_base& sentinel, intrusive_set&& other)
-      : sentinel_(sentinel)
-      , compare_(std::move(other.compare_)) {}
+  intrusive_set(intrusive_set&& other)
+      : compare_(std::move(other.compare_)) {}
 
   ~intrusive_set() = default;
 
@@ -35,42 +32,42 @@ public:
     lhs.swap(rhs);
   }
 
-  bool empty() const {
-    return !is_valid_node(top());
+  bool empty(node_base* sentinel) const {
+    return !is_valid_node(sentinel->right);
   }
 
-  node_base* lower_bound(const Key& data) const {
-    if (top() == nullptr) {
-      return &sentinel_;
+  node_base* lower_bound(node_base* sentinel, const Key& data) const {
+    if (sentinel->right == nullptr) {
+      return sentinel;
     }
-    return lower_bound(const_cast<node_base*>(top()), data);
+    return lower_bound(sentinel, sentinel->right, data);
   }
 
-  node_base* upper_bound(const Key& data) const {
-    auto res = lower_bound(data);
-    if (res == &sentinel_ || !equal(get_data(res), data)) {
+  node_base* upper_bound(node_base* sentinel, const Key& data) const {
+    auto res = lower_bound(sentinel, data);
+    if (res == sentinel || !equal(get_data(res), data)) {
       return res;
     }
     return res->next();
   }
 
-  node_t* insert(node_t* new_node) {
-    if (empty()) {
-      sentinel_.left = new_node;
-      sentinel_.link_right(new_node);
-      new_node->link_right(&sentinel_);
+  node_t* insert(node_base* sentinel, node_t* new_node) {
+    if (empty(sentinel)) {
+      sentinel->left = new_node;
+      sentinel->link_right(new_node);
+      new_node->link_right(sentinel);
       return new_node;
     }
 
-    auto current = top();
+    auto current = sentinel->right;
     while (true) {
       if (compare_(get_data(new_node), get_data(current))) {
         if (is_valid_node(current->left)) {
           current = current->left;
         } else {
           current->link_left(new_node);
-          if (current == leftmost()) {
-            sentinel_.left = new_node;
+          if (current == sentinel->left) {
+            sentinel->left = new_node;
           }
           return new_node;
         }
@@ -88,29 +85,29 @@ public:
     }
   }
 
-  node_base* find(const Key& key) const {
-    auto found = lower_bound(key);
-    return found != end() && equal(get_data(found), key) ? found : &sentinel_;
+  node_base* find(node_base* sentinel, const Key& key) const {
+    auto found = lower_bound(sentinel, key);
+    return found != sentinel && equal(get_data(found), key) ? found : sentinel;
   }
 
-  node_base* erase(node_base* pos) {
+  node_base* erase(node_base* sentinel, node_base* pos) {
     if (pos->dad == nullptr) {
-      return &sentinel_;
+      return sentinel;
     }
 
     auto next = pos->next();
-    if (pos == leftmost()) {
-      sentinel_.left = next;
+    if (pos == sentinel->left) {
+      sentinel->left = next;
     }
 
     if (pos->left == nullptr) {
       if (pos->right != nullptr) {
         pos->right->link_dad_from(pos);
       } else {
-        if (pos->dad != &sentinel_) {
+        if (pos->dad != sentinel) {
           pos->dad->unlink_son(pos);
         } else {
-          sentinel_.right = &sentinel_;
+          sentinel->right = sentinel->left;
         }
       }
       return next;
@@ -127,19 +124,19 @@ public:
     }
 
     auto left_rightmost = rightmost(pos->left);
-    erase(left_rightmost);
+    erase(sentinel, left_rightmost);
     left_rightmost->link_left(pos->left);
     left_rightmost->link_right(pos->right);
     left_rightmost->link_dad_from(pos);
     return next;
   }
 
-  const node_base* begin() const noexcept {
-    return is_valid_node(top()) ? leftmost() : end();
+  const node_base* begin(node_base* sentinel) const noexcept {
+    return is_valid_node(sentinel->right) ? sentinel->left : end(sentinel);
   }
 
-  const node_base* end() const noexcept {
-    return &sentinel_;
+  const node_base* end(node_base* sentinel) const noexcept {
+    return sentinel;
   }
 
   bool equal(const Key& a, const Key& b) const {
@@ -147,18 +144,6 @@ public:
   }
 
 private:
-  node_base* top() noexcept {
-    return sentinel_.right;
-  }
-
-  const node_base* top() const noexcept {
-    return sentinel_.right;
-  }
-
-  const node_base* leftmost() const noexcept {
-    return sentinel_.left;
-  }
-
   node_base* rightmost(node_base* current) {
     while (is_valid_node(current->right)) {
       current = current->right;
@@ -174,34 +159,34 @@ private:
     return node->data;
   }
 
-  node_base* lower_bound(node_base* current, const Key& data) const {
-    if (current == &sentinel_) {
+  node_base* lower_bound(node_base* sentinel, node_base* current, const Key& data) const {
+    if (current == sentinel) {
       return current;
     }
     if (compare_(get_data(current), data)) {
-      return current->right == nullptr ? &sentinel_ : lower_bound(current->right, data);
+      return current->right == nullptr ? sentinel : lower_bound(sentinel, current->right, data);
     } else {
       if (current->left == nullptr) {
         return current;
       } else {
-        node_base* tmp = lower_bound(current->left, data);
-        return tmp == &sentinel_ ? current : tmp;
+        node_base* tmp = lower_bound(sentinel, current->left, data);
+        return tmp == sentinel ? current : tmp;
       }
     }
   }
 
-  node_base* upper_bound(node_base* current, const Key& data) const {
-    if (current == &sentinel_) {
+  node_base* upper_bound(node_base* sentinel, node_base* current, const Key& data) const {
+    if (current == sentinel) {
       return current;
     }
     if (compare_(get_data(current), data)) {
-      return current->right == nullptr ? &sentinel_ : upper_bound(current->right, data);
+      return current->right == nullptr ? sentinel : upper_bound(current->right, data);
     } else {
       if (current->left == nullptr) {
         return current;
       } else {
         node_base* tmp = lower_bound(current->left, data);
-        return tmp == &sentinel_ ? current : tmp;
+        return tmp == sentinel ? current : tmp;
       }
     }
   }
@@ -210,6 +195,5 @@ private:
   template <typename K, typename V, typename C1, typename C2>
   friend class bimap;
 
-  node_base& sentinel_;
   [[no_unique_address]] Compare compare_;
 };

@@ -25,12 +25,12 @@ public:
 
 public:
   bimap(CompareLeft compare_left = CompareLeft(), CompareRight compare_right = CompareRight())
-      : left_set(sentinel_.get_left_sentinel(), std::move(compare_left))
-      , right_set(sentinel_.get_right_sentinel(), std::move(compare_right)) {}
+      : left_set(std::move(compare_left))
+      , right_set(std::move(compare_right)) {}
 
   bimap(const bimap& other)
-      : left_set(sentinel_.get_left_sentinel(), other.left_set.compare_)
-      , right_set(sentinel_.get_right_sentinel(), other.right_set.compare_) {
+      : left_set(other.left_set.compare_)
+      , right_set(other.right_set.compare_) {
     try {
       for (auto it = other.begin_left(); it != other.end_left(); ++it) {
         const node_t* other_node = static_cast<node_t*>(static_cast<left_node_t*>(it.ptr()));
@@ -44,8 +44,8 @@ public:
 
   bimap(bimap&& other) noexcept
       : sentinel_(std::move(other.sentinel_))
-      , left_set(sentinel_.get_left_sentinel(), std::move(other.left_set))
-      , right_set(sentinel_.get_right_sentinel(), std::move(other.right_set))
+      , left_set(std::move(other.left_set))
+      , right_set(std::move(other.right_set))
       , size_(std::exchange(other.size_, 0)) {
     other.sentinel_.get_left_sentinel().unlink();
     other.sentinel_.get_right_sentinel().unlink();
@@ -172,11 +172,11 @@ public:
   }
 
   left_iterator find_left(const left_t& left) const {
-    return left_set.find(left);
+    return left_set.find(&sentinel_.get_left_sentinel(), left);
   }
 
   right_iterator find_right(const right_t& right) const {
-    return right_set.find(right);
+    return right_set.find(&sentinel_.get_right_sentinel(), right);
   }
 
   const right_t& at_left(const left_t& key) const {
@@ -202,7 +202,6 @@ public:
     }
 
     if constexpr (std::is_default_constructible_v<right_t>) {
-      // erase_right(right_t());
       return *insert(new node_t(key, right_t())).flip();
     } else {
       throw;
@@ -216,7 +215,6 @@ public:
     }
 
     if constexpr (std::is_default_constructible_v<left_t>) {
-      // erase_left(left_t());
       return *insert(new node_t(left_t(), key));
     } else {
       throw;
@@ -224,35 +222,35 @@ public:
   }
 
   left_iterator lower_bound_left(const left_t& left) const {
-    return left_set.lower_bound(left);
+    return left_set.lower_bound(&sentinel_.get_left_sentinel(), left);
   }
 
   left_iterator upper_bound_left(const left_t& left) const {
-    return left_set.upper_bound(left);
+    return left_set.upper_bound(&sentinel_.get_left_sentinel(), left);
   }
 
   right_iterator lower_bound_right(const right_t& right) const {
-    return right_set.lower_bound(right);
+    return right_set.lower_bound(&sentinel_.get_right_sentinel(), right);
   }
 
   right_iterator upper_bound_right(const right_t& right) const {
-    return right_set.upper_bound(right);
+    return right_set.upper_bound(&sentinel_.get_right_sentinel(), right);
   }
 
   left_iterator begin_left() const {
-    return left_set.begin();
+    return left_set.begin(&sentinel_.get_left_sentinel());
   }
 
   left_iterator end_left() const {
-    return left_set.end();
+    return left_set.end(&sentinel_.get_left_sentinel());
   }
 
   right_iterator begin_right() const {
-    return right_set.begin();
+    return right_set.begin(&sentinel_.get_right_sentinel());
   }
 
   right_iterator end_right() const {
-    return right_set.end();
+    return right_set.end(&sentinel_.get_right_sentinel());
   }
 
   bool empty() const {
@@ -294,16 +292,16 @@ private:
     node_base* inserted_right;
     node_base* inserted_left;
     try {
-      inserted_right = right_set.insert(new_right_node);
+      inserted_right = right_set.insert(&sentinel_.get_right_sentinel(), new_right_node);
     } catch (...) {
       delete new_node;
       throw;
     }
     try {
-      inserted_left = left_set.insert(new_left_node);
+      inserted_left = left_set.insert(&sentinel_.get_left_sentinel(), new_left_node);
     } catch (...) {
       if (inserted_right == new_right_node) {
-        right_set.erase(new_right_node);
+        right_set.erase(&sentinel_.get_right_sentinel(), new_right_node);
       }
       delete new_node;
       throw;
@@ -343,8 +341,8 @@ private:
   }
 
   left_iterator erase(node_t* node) noexcept {
-    auto left_it = left_set.erase(static_cast<left_node_t*>(node));
-    right_set.erase(static_cast<right_node_t*>(node));
+    auto left_it = left_set.erase(&sentinel_.get_left_sentinel(), static_cast<left_node_t*>(node));
+    right_set.erase(&sentinel_.get_right_sentinel(), static_cast<right_node_t*>(node));
     delete node;
     --size_;
 
@@ -352,7 +350,7 @@ private:
   }
 
 private:
-  bimap_node_sentinel sentinel_;
+  mutable bimap_node_sentinel sentinel_;
   [[no_unique_address]] intrusive_set<Left, CompareLeft, left_tag> left_set;
   [[no_unique_address]] intrusive_set<Right, CompareRight, right_tag> right_set;
   int size_{0};
