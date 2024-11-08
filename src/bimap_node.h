@@ -148,7 +148,7 @@ struct node_base {
 
 protected:
   node_base(node_base* _left, node_base* _right, node_base* _dad)
-    : left(_left), right(_right), dad(_dad) {}
+    : dad(_dad), left(_left), right(_right) {}
 };
 
 static bool is_valid_node(const node_base* node) {
