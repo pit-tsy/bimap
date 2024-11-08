@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <utility>
 
-
 struct left_tag;
 
 struct right_tag;
@@ -148,7 +147,9 @@ struct node_base {
 
 protected:
   node_base(node_base* _left, node_base* _right, node_base* _dad)
-    : dad(_dad), left(_left), right(_right) {}
+      : dad(_dad)
+      , left(_left)
+      , right(_right) {}
 };
 
 static bool is_valid_node(const node_base* node) {
@@ -167,10 +168,10 @@ static bool is_valid_node(const node_base* node) {
 template <typename Tag>
 struct node_sentinel : node_base {
   node_sentinel()
-    : node_base(this, this, this) {}
+      : node_base(this, this, this) {}
 
   node_sentinel(node_sentinel&& other) noexcept
-    : node_base(std::move(other)) {
+      : node_base(std::move(other)) {
     repair();
   }
 
@@ -194,7 +195,9 @@ struct node_sentinel : node_base {
   }
 };
 
-struct bimap_node_sentinel : node_sentinel<left_tag>, node_sentinel<right_tag> {
+struct bimap_node_sentinel
+    : node_sentinel<left_tag>
+    , node_sentinel<right_tag> {
   node_base& get_left_sentinel() {
     return static_cast<node_base&>(static_cast<node_sentinel<left_tag>&>(*this));
   }
@@ -225,31 +228,33 @@ struct node : public node_base {
   node() = delete;
 
   node(const T& _data)
-    : data(_data) {}
+      : data(_data) {}
 
   node(T&& _data)
-    : data(std::move(_data)) {}
+      : data(std::move(_data)) {}
 
   ~node() = default;
 };
 
 template <typename Left, typename Right>
-struct bimap_node : node<Left, left_tag>, node<Right, right_tag> {
+struct bimap_node
+    : node<Left, left_tag>
+    , node<Right, right_tag> {
   bimap_node(const Left& left_data, const Right& right_data)
-    : node<Left, left_tag>(left_data),
-      node<Right, right_tag>(right_data) {}
+      : node<Left, left_tag>(left_data)
+      , node<Right, right_tag>(right_data) {}
 
   bimap_node(Left&& left_data, const Right& right_data)
-    : node<Left, left_tag>(std::move(left_data)),
-      node<Right, right_tag>(right_data) {}
+      : node<Left, left_tag>(std::move(left_data))
+      , node<Right, right_tag>(right_data) {}
 
   bimap_node(const Left& left_data, Right&& right_data)
-    : node<Left, left_tag>(left_data),
-      node<Right, right_tag>(std::move(right_data)) {}
+      : node<Left, left_tag>(left_data)
+      , node<Right, right_tag>(std::move(right_data)) {}
 
   bimap_node(Left&& left_data, Right&& right_data)
-    : node<Left, left_tag>(std::move(left_data)),
-      node<Right, right_tag>(std::move(right_data)) {}
+      : node<Left, left_tag>(std::move(left_data))
+      , node<Right, right_tag>(std::move(right_data)) {}
 
   ~bimap_node() = default;
 

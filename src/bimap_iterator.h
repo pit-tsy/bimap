@@ -18,11 +18,11 @@ public:
   bimap_iterator() = default;
 
   reference operator*() const {
-    return static_cast<Node const*>(ptr_)->data;
+    return static_cast<const Node*>(ptr_)->data;
   }
 
   pointer operator->() const {
-    return &static_cast<Node const*>(ptr_)->data;
+    return &static_cast<const Node*>(ptr_)->data;
   }
 
   bimap_iterator& operator++() {
@@ -59,8 +59,9 @@ public:
     if (is_valid_node(ptr_)) {
       return static_cast<const FlipNode*>(static_cast<const BimapNode*>(static_cast<const Node*>(ptr_)));
     } else {
-      return static_cast<const node_sentinel<typename FlipNode::tag>*>(static_cast<const bimap_node_sentinel*>(
-        static_cast<const node_sentinel<tag>*>(ptr_)));
+      return static_cast<const node_sentinel<typename FlipNode::tag>*>(
+          static_cast<const bimap_node_sentinel*>(static_cast<const node_sentinel<tag>*>(ptr_))
+      );
     }
   }
 
@@ -71,9 +72,8 @@ private:
   template <typename B, typename N, typename F>
   friend class bimap_iterator;
 
-
   bimap_iterator(const node_base* ptr)
-    : ptr_(ptr) {}
+      : ptr_(ptr) {}
 
   const node_base* ptr() const {
     return ptr_;

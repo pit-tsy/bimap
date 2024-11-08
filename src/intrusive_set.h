@@ -6,7 +6,6 @@
 #include <iterator>
 #include <utility>
 
-
 template <typename Key, typename Compare, typename Tag>
 class intrusive_set {
 public:
@@ -14,16 +13,16 @@ public:
 
 public:
   intrusive_set(node_base& sentinel, Compare&& compare = Compare()) noexcept
-    : sentinel_(sentinel),
-      compare_(std::move(compare)) {}
+      : sentinel_(sentinel)
+      , compare_(std::move(compare)) {}
 
   intrusive_set(node_base& sentinel, const Compare& compare)
-    : sentinel_(sentinel),
-      compare_(compare) {}
+      : sentinel_(sentinel)
+      , compare_(compare) {}
 
   intrusive_set(node_base& sentinel, intrusive_set&& other)
-    : sentinel_(sentinel),
-      compare_(std::move(other.compare_)) {}
+      : sentinel_(sentinel)
+      , compare_(std::move(other.compare_)) {}
 
   ~intrusive_set() = default;
 

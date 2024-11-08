@@ -5,8 +5,11 @@
 
 #include <cstddef>
 
-template <typename Left, typename Right, typename CompareLeft = std::less<Left>, typename CompareRight = std::less<
-            Right>>
+template <
+    typename Left,
+    typename Right,
+    typename CompareLeft = std::less<Left>,
+    typename CompareRight = std::less<Right>>
 class bimap {
 public:
   using left_t = Left;
@@ -21,12 +24,12 @@ public:
 
 public:
   bimap(CompareLeft compare_left = CompareLeft(), CompareRight compare_right = CompareRight())
-    : left_set(sentinel_.get_left_sentinel(), std::move(compare_left)),
-      right_set(sentinel_.get_right_sentinel(), std::move(compare_right)) {}
+      : left_set(sentinel_.get_left_sentinel(), std::move(compare_left))
+      , right_set(sentinel_.get_right_sentinel(), std::move(compare_right)) {}
 
   bimap(const bimap& other)
-    : left_set(sentinel_.get_left_sentinel(), other.left_set.compare_),
-      right_set(sentinel_.get_right_sentinel(), other.right_set.compare_) {
+      : left_set(sentinel_.get_left_sentinel(), other.left_set.compare_)
+      , right_set(sentinel_.get_right_sentinel(), other.right_set.compare_) {
     try {
       for (auto it = other.begin_left(); it != other.end_left(); ++it) {
         const node_t* other_node = static_cast<node_t*>(static_cast<left_node_t*>(it.ptr()));
@@ -39,10 +42,10 @@ public:
   }
 
   bimap(bimap&& other) noexcept
-    : sentinel_(std::move(other.sentinel_)),
-      left_set(sentinel_.get_left_sentinel(), std::move(other.left_set)),
-      right_set(sentinel_.get_right_sentinel(), std::move(other.right_set)),
-      size_(std::exchange(other.size_, 0)) {
+      : sentinel_(std::move(other.sentinel_))
+      , left_set(sentinel_.get_left_sentinel(), std::move(other.left_set))
+      , right_set(sentinel_.get_right_sentinel(), std::move(other.right_set))
+      , size_(std::exchange(other.size_, 0)) {
     other.sentinel_.get_left_sentinel().unlink();
     other.sentinel_.get_right_sentinel().unlink();
   }
@@ -86,8 +89,7 @@ public:
   }
 
   left_iterator insert(const left_t& left, const right_t& right) {
-    if (find_left(left) != end_left() ||
-        find_right(right) != end_right()) {
+    if (find_left(left) != end_left() || find_right(right) != end_right()) {
       return end_left();
     }
     node_t* new_node = new node_t(left, right);
@@ -95,8 +97,7 @@ public:
   }
 
   left_iterator insert(const left_t& left, right_t&& right) {
-    if (find_left(left) != end_left() ||
-        find_right(right) != end_right()) {
+    if (find_left(left) != end_left() || find_right(right) != end_right()) {
       return end_left();
     }
     node_t* new_node = new node_t(left, std::move(right));
@@ -104,8 +105,7 @@ public:
   }
 
   left_iterator insert(left_t&& left, const right_t& right) {
-    if (find_left(left) != end_left() ||
-        find_right(right) != end_right()) {
+    if (find_left(left) != end_left() || find_right(right) != end_right()) {
       return end_left();
     }
     node_t* new_node = new node_t(std::move(left), right);
@@ -113,8 +113,7 @@ public:
   }
 
   left_iterator insert(left_t&& left, right_t&& right) {
-    if (find_left(left) != end_left() ||
-        find_right(right) != end_right()) {
+    if (find_left(left) != end_left() || find_right(right) != end_right()) {
       return end_left();
     }
     node_t* new_node = new node_t(std::move(left), std::move(right));
@@ -271,8 +270,7 @@ public:
     auto lhs_it = lhs.begin_left();
     auto rhs_it = rhs.begin_left();
     while (lhs_it != lhs.end_left()) {
-      if (!lhs.left_set.equal(*lhs_it, *rhs_it) ||
-          !rhs.right_set.equal(*lhs_it.flip(), *rhs_it.flip())) {
+      if (!lhs.left_set.equal(*lhs_it, *rhs_it) || !rhs.right_set.equal(*lhs_it.flip(), *rhs_it.flip())) {
         return false;
       }
 
