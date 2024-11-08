@@ -4,6 +4,7 @@
 #include "intrusive_set.h"
 
 #include <cstddef>
+#include <stdexcept>
 
 template <
     typename Left,
